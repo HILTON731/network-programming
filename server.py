@@ -14,7 +14,7 @@ def run_server(port=65432):
 
             rMsg = reversMsg(msg.decode())
             print(rMsg)
-
+            
             conn.sendall(rMsg.encode())
 def reversMsg(str):
     size = len(str)

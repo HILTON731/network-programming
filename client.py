@@ -17,6 +17,6 @@ if __name__ == '__main__':
     parser.add_argument('-i', help="host_name", required=True)
     # parser.add_argument('-s', help="input_string",nargs='+', required=False)
 
-    args = parser.parse_args()
+    args = parser.parse_args() # return stirng to object and set namespace`s attribute.
     # run(host=args.i, port=int(args.p), strList=args.s)
     run(host=args.i, port=int(args.p))

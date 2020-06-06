@@ -18,6 +18,7 @@ class UserManager:
         lock.acquire()
         self.users[username] = (conn, addr)
         lock.release()
+        conn.send(addr.encode())
         print('--- joined users [%s] ---' %len(self.users))
 
         return username
@@ -69,7 +70,7 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
     userman = UserManager()
 
     def handle(self):
-        print('[%s] connected'%self.client_address[0])
+        print('+++ [%s] connected +++'%self.client_address[0])
 
         try:
             username = self.registerUsername()
@@ -84,7 +85,7 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             print(e)
         
-        print('[%s] access complete'%self.client_address[0])
+        print('--- [%s] exit ---'%self.client_address[0])
         self.userman.removeUser(username)
 
     def registerUsername(self):
@@ -95,15 +96,15 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
             if self.userman.addUser(username, self.request, self.client_address):
                 return username
 
-class ChatingServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+class RegiServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 def runServer():
-    print('--- Start chating server ---')
+    print('--- Regiserver start ---')
     print('press ctrl-c if you wanna stop')
 
     try:
-        server = ChatingServer((HOST, PORT), MyTcpHandler)
+        server = RegiServer((HOST, PORT), MyTcpHandler)
         server.serve_forever()
     except KeyboardInterrupt:
         print('--- Close server ---')

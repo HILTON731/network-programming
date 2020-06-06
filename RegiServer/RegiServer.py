@@ -1,9 +1,11 @@
 import socketserver
 import threading
+import time
 
 HOST = ''
 PORT = 9009
 lock = threading.Lock()
+now = time.strftime('[%y/%m/%d %H:%M:%S]',time.localtime(time.time()))
 
 class UserManager:
 
@@ -12,14 +14,15 @@ class UserManager:
 
     def addUser(self, username, conn, addr):
         if username in self.users:
-            conn.send("Already registered..\n".encode())
+            print(now,' Attempt to register')
+            conn.send("Already registered..".encode())
             return None
 
         lock.acquire()
         self.users[username] = (conn, addr)
         lock.release()
-        conn.send(addr.encode())
-        print('--- joined users [%s] ---' %len(self.users))
+        conn.send(str(addr).encode())
+        print(now,' {} users joined' .format(len(self.users)))
 
         return username
 
@@ -31,7 +34,7 @@ class UserManager:
         del self.users[username]
         lock.release()
 
-        print('--- joined users [%s] ---' %len(self.users))
+        print(now,' {} users joined' .format(len(self.users)))
     
     def help(self, username):
         text = """
@@ -43,16 +46,14 @@ class UserManager:
         - logoff : send a message (notification) to regiServer for logging off the chat system
         """
         self.sendMessage(text,username)
-    
+        
+
     def online_users(self, username):
         for key, value in self.users.items():
-            conn, addr = value
+            _, addr = value
             self.sendMessage(str(key)+'='+str(addr),username)
 
     def messageHandler(self, username, msg):
-        # if msg[0] != '/':
-        #     self.sendMessageToAll('[%s] %s'%(username, msg))
-        #     return
         command = msg.strip()
         if command == 'logoff':
             self.removeUser(username)
@@ -63,20 +64,20 @@ class UserManager:
             self.help(username)
 
     def sendMessage(self, msg, username):
-        conn, addr = self.users.get(username)
+        conn, _ = self.users.get(username)
         conn.send(msg.encode())
 
 class MyTcpHandler(socketserver.BaseRequestHandler):
     userman = UserManager()
 
     def handle(self):
-        print('+++ [%s] connected +++'%self.client_address[0])
+        print(now,' {} connect'.format(self.client_address))
 
         try:
             username = self.registerUsername()
             msg = self.request.recv(1024)
             while msg:
-                print(msg.decode())
+                print(now,' {} request command \'{}\''.format(self.client_address,msg.decode()))
                 if self.userman.messageHandler(username, msg.decode()) == -1:
                     self.request.close()
                     break
@@ -85,29 +86,29 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             print(e)
         
-        print('--- [%s] exit ---'%self.client_address[0])
+        print(now,' {} exit'.format(self.client_address))
         self.userman.removeUser(username)
 
     def registerUsername(self):
         while True:
-            self.request.send('loginID:'.encode())
             username = self.request.recv(1024)
             username = username.decode().strip()
             if self.userman.addUser(username, self.request, self.client_address):
+                self.request.send('okay'.encode())
                 return username
 
 class RegiServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 def runServer():
-    print('--- Regiserver start ---')
+    print(now,' Regiserver start')
     print('press ctrl-c if you wanna stop')
 
     try:
         server = RegiServer((HOST, PORT), MyTcpHandler)
         server.serve_forever()
     except KeyboardInterrupt:
-        print('--- Close server ---')
+        print(now,' Close server')
         server.shutdown()
         server.server_close()
 

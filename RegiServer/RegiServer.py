@@ -60,8 +60,13 @@ class UserManager:
             return -1
         elif command == 'online_users':
             self.online_users(username)
-        else:
+            return
+        elif command == 'help':
             self.help(username)
+            return
+        else:
+            self.sendMessage('Command not available',username)
+            return
 
     def sendMessage(self, msg, username):
         conn, _ = self.users.get(username)
@@ -75,6 +80,10 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
 
         try:
             username = self.registerUsername()
+            if username == -1:
+                self.request.close()
+                print(now,' {} exit'.format(self.client_address))
+                return
             msg = self.request.recv(1024)
             while msg:
                 print(now,' {} request command \'{}\''.format(self.client_address,msg.decode()))
@@ -93,6 +102,8 @@ class MyTcpHandler(socketserver.BaseRequestHandler):
         while True:
             username = self.request.recv(1024)
             username = username.decode().strip()
+            if username == 'logoff':
+                return -1
             if self.userman.addUser(username, self.request, self.client_address):
                 self.request.send('okay'.encode())
                 return username
